@@ -172,10 +172,40 @@ unittest
     assert(output == [ CharRange(0x0000, 0x0002) ]);
 }
 
+void dumpRanges(R)(R data)
+    if (isInputRange!R && is(ElementType!R : const(char)[]))
+{
+    data.parse();
+}
+
+void dumpIntervals(R)(R data)
+    if (isInputRange!R && is(ElementType!R : const(char)[]))
+{
+    data.parse!((CharRange r) {
+        writefln("%d, %d,", r.start, r.end+1);
+    });
+}
+
+void genCode(R)(R data)
+    if (isInputRange!R && is(ElementType!R : const(char)[]))
+{
+    import std.uni;
+
+    uint[] ranges;
+    data.parse!((CharRange r) {
+        ranges ~= [ r.start, r.end+1 ];
+    });
+
+    auto wideChars = CodepointSet(ranges);
+    writeln(wideChars.toSourceCode("isWide"));
+}
+
 void main()
 {
     auto data = File("ext/unicode-10.0.0/EastAsianWidth.txt", "r").byLine;
-    parse(data);
+    //dumpRanges(data);
+    dumpIntervals(data);
+    //genCode(data);
 }
 
 // vim:set sw=4 ts=4 et:
