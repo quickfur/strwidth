@@ -17,9 +17,9 @@ struct CharRange
     {
         import std.format : formattedWrite;
         if (start == end)
-            sink.formattedWrite("%04x", start);
+            sink.formattedWrite("%04X", start);
         else
-            sink.formattedWrite("%04x..%04x", start, end);
+            sink.formattedWrite("%04X..%04X", start, end);
     }
 
     bool opCast(T : bool)() { return start >= 0; }
