@@ -16,12 +16,13 @@ struct CharRange
     void toString(scope void delegate(const(char)[]) sink)
     {
         import std.format : formattedWrite;
-        if (start == int.min) return;
         if (start == end)
             sink.formattedWrite("%04x", start);
         else
             sink.formattedWrite("%04x..%04x", start, end);
     }
+
+    bool opCast(T : bool)() { return start >= 0; }
 }
 
 void parse(alias writeln = std.stdio.writeln, R)(R data)
@@ -50,7 +51,7 @@ void parse(alias writeln = std.stdio.writeln, R)(R data)
             {
                 // Disjoint from current range; yield current range and start
                 // new range.
-                writeln(curRange);
+                if (curRange) writeln(curRange);
                 curRange.start = curRange.end = ch;
             }
         }
@@ -59,7 +60,7 @@ void parse(alias writeln = std.stdio.writeln, R)(R data)
             auto start = m[1].to!int(16);
             auto end   = m[2].to!int(16);
 
-            if (curRange.end + 1 <= start)
+            if (curRange.end + 1 >= start)
             {
                 // Can merge with current range.
                 curRange.end = max(end, curRange.end);
@@ -68,15 +69,13 @@ void parse(alias writeln = std.stdio.writeln, R)(R data)
             {
                 // Disjoint from current range; yield current range and start
                 // new range.
-                writeln(curRange);
+                if (curRange) writeln(curRange);
                 curRange.start = start;
                 curRange.end = end;
             }
         }
     }
-
-    if (curRange.start != -1)
-        writeln(curRange);
+    if (curRange) writeln(curRange);
 }
 
 unittest
@@ -115,6 +114,60 @@ unittest
     parse!((r) { if (r.start != int.min) output ~= r; })([
         "0000;W",
         "0001..0002;W"
+    ]);
+    assert(output == [ CharRange(0x0000, 0x0002) ]);
+
+    output = [];
+    parse!((r) { if (r.start != int.min) output ~= r; })([
+        "0000..0001;W"
+    ]);
+    assert(output == [ CharRange(0x0000, 0x0001) ]);
+
+    output = [];
+    parse!((r) { if (r.start != int.min) output ~= r; })([
+        "0000..0001;W",
+        "0002;F"
+    ]);
+    assert(output == [ CharRange(0x0000, 0x0002) ]);
+
+    output = [];
+    parse!((r) { if (r.start != int.min) output ~= r; })([
+        "0000..0001;F",
+        "0002..0003;W"
+    ]);
+    assert(output == [ CharRange(0x0000, 0x0003) ]);
+
+    output = [];
+    parse!((r) { if (r.start != int.min) output ~= r; })([
+        "0000..0001;Na",
+        "0002..0003;W"
+    ]);
+    assert(output == [ CharRange(0x0002, 0x0003) ]);
+
+    output = [];
+    parse!((r) { if (r.start != int.min) output ~= r; })([
+        "0000..0001;W",
+        "0002;F",
+        "0003..0004;W"
+    ]);
+    assert(output == [ CharRange(0x0000, 0x0004) ]);
+
+    output = [];
+    parse!((r) { if (r.start != int.min) output ~= r; })([
+        "0000..0001;W",
+        "0002;N",
+        "0003..0004;W"
+    ]);
+    assert(output == [
+        CharRange(0x0000, 0x0001),
+        CharRange(0x0003, 0x0004)
+    ]);
+
+    output = [];
+    parse!((r) { if (r.start != int.min) output ~= r; })([
+        "0000..0001;W",
+        "0002;F",
+        "0003..0004;N"
     ]);
     assert(output == [ CharRange(0x0000, 0x0002) ]);
 }
