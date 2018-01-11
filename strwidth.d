@@ -3,6 +3,15 @@
  */
 
 /**
+ * Returns: true if ch is designated as a wide character according to TR11
+ * (Unicode Standard Annex #11 "East Asian Width"); false otherwise.
+ */
+bool isEastAsianWide(dchar ch)
+{
+    assert(0, "TBD");
+}
+
+/**
  * Reference implementation that takes into account:
  *
  * - Non-ASCII characters
@@ -77,8 +86,14 @@ unittest
         S("zero\u200Dwidth joiner", 16),
         S("\uFEFFBOM", 3),
 
-        /* Double-width characters */
-        // TBD
+        /* East Asian block characters */
+        // TBD: wide (W). Note: F ⊆ W, so it suffices to consider W.
+
+        // TBD: narrow (Na). Note: H ⊆ Na, so it suffices to consider Na.
+
+        // TBD: ambiguous width (A): according to UAX #11, section 5
+        // "Recommendations", ambiguous width characters should be treated as
+        // narrow by default, barring additional information.
     ];
 
     void test(alias impl)()
