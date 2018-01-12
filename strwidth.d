@@ -137,8 +137,6 @@ unittest
         // Mixture of ASCII, non-ASCII, and combining marks for each.
         S("I lo\u0301ve yo\u0302u, душа\u0301 моя\u0301\u0302!", 21),
 
-        // TBD: Hangul / Jamo grapheme clusters
-
         /*
          * Zero-width characters and BOMs
          */
@@ -169,6 +167,13 @@ unittest
         // ambiguous width characters should be treated as narrow by default,
         // barring additional information.
         S("\u3248張\u324F", 4),
+
+        // Hangul / Jamo grapheme clusters.
+        // I love this one. It's a single grapheme, but since it is in a block
+        // designated as having wide (W) East Asian Width, it should be counted
+        // as taking up two character cells. Good luck making this work
+        // efficiently.
+        S("\u1100\u1161\u11A8", 2),
 
         /*
          * Kitchen sink test case
