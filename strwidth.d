@@ -169,6 +169,11 @@ unittest
         // ambiguous width characters should be treated as narrow by default,
         // barring additional information.
         S("\u3248張\u324F", 4),
+
+        /*
+         * Kitchen sink test case
+         */
+        S("\uFEFF01\u200Cx\u0335ж\u0306\u0325大工\u0301,*", 10),
     ];
 
     void test(alias impl)()
