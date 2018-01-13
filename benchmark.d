@@ -70,7 +70,7 @@ void main(string[] args)
     import std.range.primitives : walkLength;
     import std.stdio;
 
-    import strwidth : width0, width;
+    import strwidth;
 
     int numIter = 10_000;
     if (args.length >= 2)
@@ -79,8 +79,8 @@ void main(string[] args)
         numIter = args[1].to!int;
     }
 
-    foreach (func; Seq!(walkLength, byGraphemeWalk, graphemeStrideWalk, width0,
-                        width))
+    foreach (func; Seq!(walkLength, byGraphemeWalk, graphemeStrideWalk,
+                        width0, width1, width2, width3))
     {
         writefln("[%s] (%d iterations):", __traits(identifier, func), numIter);
         foreach (len; [ 32, 128, 1024 ])

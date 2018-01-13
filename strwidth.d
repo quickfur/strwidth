@@ -90,11 +90,7 @@ size_t width0(string s)
     return w;
 }
 
-/**
- * Optimized implementation that tries to maximize performance without
- * compromising correctness.
- */
-template width()
+private template widthMap()
 {
     private auto buildWidthTable()
     {
@@ -174,15 +170,24 @@ template width()
     }
 
     private alias Impl = typeof(buildWidthTable());
-    private immutable(Impl) impl;
+    private immutable(Impl) widthMap;
 
     static this()
     {
-        impl = buildWidthTable();
+        widthMap = buildWidthTable();
     }
+}
+
+/**
+ * Optimized implementation that tries to maximize performance without
+ * compromising correctness.
+ */
+template width1()
+{
+    alias impl = widthMap!();
 
     ///
-    size_t width(string s) pure @nogc @safe
+    size_t width1(string s) pure @nogc @safe
     {
         size_t result;
         foreach (dchar ch; s)
@@ -192,10 +197,70 @@ template width()
 
     unittest
     {
-        assert(width("a") == 1);
-        assert(width("abc") == 3);
-        assert(width("Ж") == 1);
-        assert(width("жук") == 3);
+        assert(width1("a") == 1);
+        assert(width1("abc") == 3);
+        assert(width1("Ж") == 1);
+        assert(width1("жук") == 3);
+    }
+}
+
+/**
+ * Optimized implementation that tries to skip over ASCII segments for even
+ * better performance.
+ */
+template width2()
+{
+    alias impl = widthMap!();
+
+    ///
+    size_t width2(string s) pure /*@nogc*/ @safe
+    {
+        size_t result;
+        for (size_t i = 0; i < s.length;)
+        {
+            if ((s[i] & 0x80) == 0)
+            {
+                i++;
+                result++;
+            }
+            else
+            {
+                import std.utf : decode;
+                result += impl[decode(s, i)];
+            }
+        }
+        return result;
+    }
+}
+
+/**
+ * Optimized implementation that tries to skip over ASCII segments for even
+ * better performance, and also short-circuit characters < U+300, since that's
+ * the first character with width != 1.
+ */
+template width3()
+{
+    alias impl = widthMap!();
+
+    ///
+    size_t width3(string s) pure /*@nogc*/ @safe
+    {
+        size_t result;
+        for (size_t i = 0; i < s.length;)
+        {
+            if ((s[i] & 0x80) == 0)
+            {
+                i++;
+                result++;
+            }
+            else
+            {
+                import std.utf : decode;
+                auto ch = decode(s, i);
+                result += (ch < 0x300) ? 1 : impl[ch];
+            }
+        }
+        return result;
     }
 }
 
@@ -295,7 +360,9 @@ unittest
     }
 
     test!width0;
-    test!width;
+    test!width1;
+    test!width2;
+    test!width3;
 }
 
 // vim:set sw=4 ts=4 et:
