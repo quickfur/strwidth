@@ -94,9 +94,109 @@ size_t width0(string s)
  * Optimized implementation that tries to maximize performance without
  * compromising correctness.
  */
-size_t width(string s)
+template width()
 {
-    assert(0, "TBD");
+    private auto buildWidthTable()
+    {
+        byte[dchar] widthMap;
+
+        // Automatically generated from EastAsianWidth.txt.
+        uint[2][] wideChars = [
+            [ 4352, 4448 ], [ 8986, 8988 ], [ 9001, 9003 ], [ 9193, 9197 ],
+            [ 9200, 9201 ], [ 9203, 9204 ], [ 9725, 9727 ], [ 9748, 9750 ],
+            [ 9800, 9812 ], [ 9855, 9856 ], [ 9875, 9876 ], [ 9889, 9890 ],
+            [ 9898, 9900 ], [ 9917, 9919 ], [ 9924, 9926 ], [ 9934, 9935 ],
+            [ 9940, 9941 ], [ 9962, 9963 ], [ 9970, 9972 ], [ 9973, 9974 ],
+            [ 9978, 9979 ], [ 9981, 9982 ], [ 9989, 9990 ], [ 9994, 9996 ],
+            [ 10024, 10025 ], [ 10060, 10061 ], [ 10062, 10063 ],
+            [ 10067, 10070 ], [ 10071, 10072 ], [ 10133, 10136 ],
+            [ 10160, 10161 ], [ 10175, 10176 ], [ 11035, 11037 ],
+            [ 11088, 11089 ], [ 11093, 11094 ], [ 11904, 11930 ],
+            [ 11931, 12020 ], [ 12032, 12246 ], [ 12272, 12284 ],
+            [ 12288, 12351 ], [ 12353, 12439 ], [ 12441, 12544 ],
+            [ 12549, 12591 ], [ 12593, 12687 ], [ 12688, 12731 ],
+            [ 12736, 12772 ], [ 12784, 12831 ], [ 12832, 12872 ],
+            [ 12880, 13055 ], [ 13056, 19904 ], [ 19968, 42125 ],
+            [ 42128, 42183 ], [ 43360, 43389 ], [ 44032, 55204 ],
+            [ 63744, 64256 ], [ 65040, 65050 ], [ 65072, 65107 ],
+            [ 65108, 65127 ], [ 65128, 65132 ], [ 65281, 65377 ],
+            [ 65504, 65511 ], [ 94176, 94178 ], [ 94208, 100333 ],
+            [ 100352, 101107 ], [ 110592, 110879 ], [ 110960, 111356 ],
+            [ 126980, 126981 ], [ 127183, 127184 ], [ 127374, 127375 ],
+            [ 127377, 127387 ], [ 127488, 127491 ], [ 127504, 127548 ],
+            [ 127552, 127561 ], [ 127568, 127570 ], [ 127584, 127590 ],
+            [ 127744, 127777 ], [ 127789, 127798 ], [ 127799, 127869 ],
+            [ 127870, 127892 ], [ 127904, 127947 ], [ 127951, 127956 ],
+            [ 127968, 127985 ], [ 127988, 127989 ], [ 127992, 128063 ],
+            [ 128064, 128065 ], [ 128066, 128253 ], [ 128255, 128318 ],
+            [ 128331, 128335 ], [ 128336, 128360 ], [ 128378, 128379 ],
+            [ 128405, 128407 ], [ 128420, 128421 ], [ 128507, 128592 ],
+            [ 128640, 128710 ], [ 128716, 128717 ], [ 128720, 128723 ],
+            [ 128747, 128749 ], [ 128756, 128761 ], [ 129296, 129343 ],
+            [ 129344, 129357 ], [ 129360, 129388 ], [ 129408, 129432 ],
+            [ 129472, 129473 ], [ 129488, 129511 ], [ 131072, 196606 ],
+            [ 196608, 262142 ]
+        ];
+
+        /**
+         * Characters designated as Wide (W) or Full-width (F) in TR11 will be
+         * counted as 2 spaces.
+         */
+        foreach (interval; wideChars)
+        {
+            foreach (ch; interval[0] .. interval[1])
+            {
+                widthMap[ch] = 2;
+            }
+        }
+
+        /**
+         * Anything that extends a grapheme will be assigned width 0, so that
+         * we only count grapheme bases. This shortcut saves us from needing to
+         * explicitly segment by graphemes, which is very slow.
+         */
+        foreach (ch; (unicode.Grapheme_extend |
+                      unicode.hangulSyllableType("V") |
+                      unicode.hangulSyllableType("T")).byCodepoint)
+        {
+            widthMap[ch] = 0;
+        }
+
+        /**
+         * Zero width separators that should not add to width.
+         */
+        foreach (ch; [ '\u200B', '\u200C', '\u200D', '\uFEFF' ])
+        {
+            widthMap[ch] = 0;
+        }
+
+        return codepointTrie!(byte, 8, 5, 8)(widthMap, 1);
+    }
+
+    private alias Impl = typeof(buildWidthTable());
+    private immutable(Impl) impl;
+
+    static this()
+    {
+        impl = buildWidthTable();
+    }
+
+    ///
+    size_t width(string s) pure @nogc @safe
+    {
+        size_t result;
+        foreach (dchar ch; s)
+            result += impl[ch];
+        return result;
+    }
+
+    unittest
+    {
+        assert(width("a") == 1);
+        assert(width("abc") == 3);
+        assert(width("Ж") == 1);
+        assert(width("жук") == 3);
+    }
 }
 
 unittest
@@ -195,7 +295,7 @@ unittest
     }
 
     test!width0;
-    //test!width;
+    test!width;
 }
 
 // vim:set sw=4 ts=4 et:
