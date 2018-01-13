@@ -1,5 +1,12 @@
-Experimental fast string monospace display width implementation
-===============================================================
+D equivalent of Posix wcwidth / wcswidth
+========================================
+
+Relevant issues
+---------------
+
+* https://issues.dlang.org/show_bug.cgi?id=7054
+* https://issues.dlang.org/show_bug.cgi?id=17810
+
 
 Manifest
 --------
@@ -7,6 +14,7 @@ Manifest
 	strwidth.d	// main implementation.
 	compileWidth.d	// optional utility for extracting needed width data
 			// from Unicode data file.
+
 
 Contents
 --------
