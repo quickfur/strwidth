@@ -213,7 +213,7 @@ template width2()
     alias impl = widthMap!();
 
     ///
-    size_t width2(string s) pure /*@nogc*/ @safe
+    size_t width2(string s) pure @nogc @safe
     {
         size_t result;
         for (size_t i = 0; i < s.length;)
@@ -226,7 +226,9 @@ template width2()
             else
             {
                 import std.utf : decode;
-                result += impl[decode(s, i)];
+                import std.typecons : Yes;
+
+                result += impl[decode!(Yes.useReplacementDchar)(s, i)];
             }
         }
         return result;
@@ -256,7 +258,9 @@ template width3()
             else
             {
                 import std.utf : decode;
-                auto ch = decode(s, i);
+                import std.typecons : Yes;
+
+                auto ch = decode!(Yes.useReplacementDchar)(s, i);
                 result += (ch < 0x300) ? 1 : impl[ch];
             }
         }
