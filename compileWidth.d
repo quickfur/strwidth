@@ -200,9 +200,13 @@ void genCode(R)(R data)
     writeln(wideChars.toSourceCode("isWide"));
 }
 
-void main()
+void main(string[] args)
 {
-    auto data = File("ext/unicode-10.0.0/EastAsianWidth.txt", "r").byLine;
+    string datafile = "ext/unicode-10.0.0/EastAsianWidth.txt";
+    if (args.length >= 2)
+        datafile = args[1];
+
+    auto data = File(datafile, "r").byLine;
     //dumpRanges(data);
     dumpIntervals(data);
     //genCode(data);
