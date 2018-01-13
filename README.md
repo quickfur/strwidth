@@ -11,7 +11,8 @@ Relevant issues
 Manifest
 --------
 
-	strwidth.d	// main implementation.
+	strwidth.d	// main implementations.
+	benchmark.d	// benchmarking utility.
 	compileWidth.d	// optional utility for extracting needed width data
 			// from Unicode data file.
 
@@ -24,25 +25,64 @@ The main code is in strwidth.d.
 The width0() function is a rather slow reference implementation that's supposed
 to represent what the correct behaviour should be.
 
-The width() function is a fast, trie-based function that's supposed to be
-optimized for real-world use.  Currently it's still not as fast as it could be,
-but should be a lot better than width0().
+The width1() function is a fast, trie-based function.
+
+The width2() and width3() functions are further optimizations of width1 that
+implement a short-circuit path for ASCII or mostly-ASCII strings that
+completely bypass auto-decoding and a trie lookup when the character is in the
+ASCII range.
 
 The large unittest at the end contains a bunch of test cases, some rather
 obscure, to test various corner cases that need to be addressed correctly.
-These test cases are applied both to width0() and width() to ensure that they
-both function correctly.
+These test cases are applied both to all widthX implementations to ensure that
+they function correctly.
 
 To run the unittests:
 
 	dmd -unittest -main -run strwidth.d
 
 
+Benchmarking
+------------
+
+To compile the benchmarking tool, if you have SCons, just run:
+
+	scons
+
+and it will compile the benchmarking (as well the compileWidth tool, see
+below). You may have to edit SConstruct to point to the location of dmd on your
+machine.
+
+Otherwise:
+
+	dmd -unittest -O benchmark.d strwidth.d
+
+Running the benchmark utility will test the various widthX() implementations
+alongside various baselines:
+
+* walkLength, which is very fast but incorrect because it does not take
+  grapheme clusters into account;
+
+* byGraphemeWalk and graphemeStrideWalk, which do take grapheme clusters into
+  account but are also incorrect because they don't account for East Asian
+  Width and zero-width characters. They're also pretty slow because grapheme
+  segmentation is expensive.
+
+These are all tested against randomly-generated strings of various lengths and
+contents (ASCII-only, or a random mixture of ASCII and non-ASCII Unicode
+characters).
+
+The `benchmark` utility takes an optional command-line argument specifying the
+number of strings to test per function per string type. The default number is
+10000.
+
+
 Generating lookup tables
 ------------------------
 
-The lookup tables used by isWide(), width0(), and width() are, in part,
-generated from the EastAsianWidth.txt file published by the Unicode Consortium:
+The lookup tables used by isWide() and the widthX() implementations are, in
+part, generated from the EastAsianWidth.txt file published by the Unicode
+Consortium:
 
 	ftp://ftp.unicode.org/Public/UNIDATA/EastAsianWidth.txt
 
@@ -50,19 +90,19 @@ The code for parsing this file is in compileWidth.d.
 
 To run compileWidth:
 
-	dmd -unittest -O compileWidth.d
+	dmd -unittest -O compileWidth.d   # or just `scons` if you have it
 	./compileWidth <path_to_widths_file>
 
 There's a bunch of output options that you can comment/uncomment at the end of
 the code in main().  There's no nice CLI interface for this because it's meant
 as a crude tool to extract the needed data, massage it appropriately, and
-output it in a form that can be copied into the width() code.
+output it in a form that can be copied into the widthX() code.
 
-The eventual goal is to move the ugly Trie construction code in width() into
+The eventual goal is to move the ugly Trie construction code in widthX() into
 compileWidth.d, and have it compile the Trie into a static list of pages that
 can be statically copied into std/internal/unicode_tables.d in Phobos.  Having
 this process automated is important, so that when the Unicode Consortium
 publishes new revisions of EastAsianWidth.txt, we can update the implementation
-of width() just by running compileWidth on the new file instead of needing to
+of widthX() just by running compileWidth on the new file instead of needing to
 manually tweak a bunch of numerical tables.
 
