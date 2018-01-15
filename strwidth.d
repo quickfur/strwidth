@@ -82,7 +82,8 @@ size_t width0(string s)
     for (size_t i = 0; i < s.length; i += graphemeStride(s, i))
     {
         auto ch = s[i .. $].front; // depends on autodecoding (ugh)
-        if (!ch.among('\u200B', '\u200C', '\u200D', '\uFEFF'))
+        if (!ch.among('\u00AD', '\u200B', '\u200C', '\u200D', '\u200E',
+                      '\u2060', '\u2061', '\uFEFF'))
             w++;
         if (ch.isWide)
             w++;
@@ -161,7 +162,8 @@ private template widthMap()
         /**
          * Zero width separators that should not add to width.
          */
-        foreach (ch; [ '\u200B', '\u200C', '\u200D', '\uFEFF' ])
+        foreach (ch; [ '\u00AD', '\u200B', '\u200C', '\u200D', '\u200E',
+                       '\u2060', '\u2061', '\uFEFF' ])
         {
             widthMap[ch] = 0;
         }
@@ -261,7 +263,7 @@ template width3()
                 import std.typecons : Yes;
 
                 auto ch = decode!(Yes.useReplacementDchar)(s, i);
-                result += (ch < 0x300) ? 1 : impl[ch];
+                result += (ch < 0xAD) ? 1 : impl[ch];
             }
         }
         return result;
@@ -307,13 +309,20 @@ unittest
         S("I lo\u0301ve yo\u0302u, душа\u0301 моя\u0301\u0302!", 21),
 
         /*
-         * Zero-width characters and BOMs
+         * Zero-width characters and BOMs.
+         *
+         * See: http://www.unicode.org/faq/unsup_char.html
          */
 
         S("zero\u200Bwidth", 9),
         S("zero\u200Cwidth non-joiner", 20),
         S("zero\u200Dwidth joiner", 16),
+        S("Left\u200E-to-right mark", 18),
         S("\uFEFFBOM", 3),
+
+        S("soft hyph\u00ADen", 11),
+        S("word\u2060joiner", 10),
+        S("Func\u2061Application", 15),
 
         /*
          * East Asian Width
