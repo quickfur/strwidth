@@ -75,15 +75,16 @@ size_t width0(string s)
 {
     import std.algorithm.comparison : among;
     import std.range.primitives;
-    import std.uni : graphemeStride;
+    import std.uni : graphemeStride, unicode;
     import std.utf : decode;
+
+    auto defaultIgnorable = unicode.Default_Ignorable_Code_Point;
 
     size_t w = 0;
     for (size_t i = 0; i < s.length; i += graphemeStride(s, i))
     {
         auto ch = s[i .. $].front; // depends on autodecoding (ugh)
-        if (!ch.among('\u00AD', '\u200B', '\u200C', '\u200D', '\u200E',
-                      '\u2060', '\u2061', '\uFEFF'))
+        if (!defaultIgnorable[ch])
             w++;
         if (ch.isWide)
             w++;
@@ -160,10 +161,10 @@ private template widthMap()
         }
 
         /**
-         * Zero width separators that should not add to width.
+         * Default ignorable characters, including zero width separators, that
+         * should not add to width.
          */
-        foreach (ch; [ '\u00AD', '\u200B', '\u200C', '\u200D', '\u200E',
-                       '\u2060', '\u2061', '\uFEFF' ])
+        foreach (ch; unicode.Default_Ignorable_Code_Point.byCodepoint)
         {
             widthMap[ch] = 0;
         }
@@ -312,6 +313,7 @@ unittest
          * Zero-width characters and BOMs.
          *
          * See: http://www.unicode.org/faq/unsup_char.html
+         * See also: DerivedCoreProperties.txt (Default_Ignorable_Code_Point)
          */
 
         S("zero\u200Bwidth", 9),
@@ -323,6 +325,29 @@ unittest
         S("soft hyph\u00ADen", 11),
         S("word\u2060joiner", 10),
         S("Func\u2061Application", 15),
+        S("word\u2064joiner", 10),
+
+        // Various Default Ignorable characters
+        S("nb\u00A0sp", 5),
+        S("Khmer\u17B4 AQ", 8),
+        S("Khmer\u17B5 AA", 8),
+
+        // Cf
+        S("Mongolian variation\u180B", 19),
+        S("Mongolian vowel\u180E sep", 19),
+        S("Language\U000E0001Tag", 11),
+        S("M\U0001D173usi\U0001D17Ac", 5),
+        S("Reserved\U000E01F0.", 9),
+
+        // Exceptional cases from Cf that should be displayed, so they should
+        // have non-zero width (see TR44, Default_Ignorable_Code_Point).
+        S("Arabic\u0600#", 8),
+        S("Arabic\u0605z", 8),
+        S("end of ayah\u06DD", 12),
+        S("syriac abbrev\u070Fiation", 20),
+        S("An\uFFF9no\uFFFAta\uFFFBtion", 13),
+        S("Disputed\u08E2Ayah", 13),
+        S("Kaithi\U000110BD#", 8),
 
         /*
          * East Asian Width
