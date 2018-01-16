@@ -71,7 +71,7 @@ unittest
  * - Combining diacritics
  * - Zero-width spaces
  */
-size_t width0(string s)
+size_t width0(string s) pure @safe
 {
     import std.algorithm.comparison : among;
     import std.range.primitives;
@@ -216,7 +216,7 @@ template width2()
     alias impl = widthMap!();
 
     ///
-    size_t width2(string s) pure @nogc @safe
+    size_t width2(string s) pure @nogc @safe nothrow
     {
         size_t result;
         for (size_t i = 0; i < s.length;)
@@ -248,7 +248,7 @@ template width3()
     alias impl = widthMap!();
 
     ///
-    size_t width3(string s) pure /*@nogc*/ @safe
+    size_t width3(string s) pure @nogc @safe nothrow
     {
         size_t result;
         for (size_t i = 0; i < s.length;)
