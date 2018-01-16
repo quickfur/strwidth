@@ -7,6 +7,7 @@ import std.conv;
 import std.range;
 import std.regex;
 import std.stdio;
+import std.uni;
 
 struct CharRange
 {
@@ -200,16 +201,100 @@ void genCode(R)(R data)
     writeln(wideChars.toSourceCode("isWide"));
 }
 
+/**
+ * Construct trie of character display widths, and generate precompiled
+ * TrieNode declarations.
+ */
+void genTrie(R, File)(R data, File sink)
+    if (isInputRange!R && is(ElementType!R : const(char)[]))
+{
+    // Not the most efficient, but doesn't matter since we're just generating
+    // code.
+    byte[dchar] widthMap;
+
+    // Fill in wide characters from EastAsianWidth.txt.
+    data.parse!((CharRange r) {
+        foreach (ch; r.start .. r.end+1)
+            widthMap[ch] = 2;
+    });
+
+    /**
+     * Anything that extends a grapheme will be assigned width 0, so that
+     * we only count grapheme bases. This shortcut saves us from needing to
+     * explicitly segment by graphemes, which is very slow.
+     *
+     * Also include Default_Ignorable_Code_Point in the zero width
+     * category. This deals with zero-width separators and other
+     * non-spacing modifiers.
+     */
+    foreach (ch; (unicode.Grapheme_extend |
+                  unicode.hangulSyllableType("V") |
+                  unicode.hangulSyllableType("T") |
+                  unicode.Default_Ignorable_Code_Point).byCodepoint)
+    {
+        widthMap[ch] = 0;
+    }
+
+    alias Seq(A...) = A;
+    alias Params = Seq!(8, 5, 8);
+
+    auto trie = codepointTrie!(byte, Params)(widthMap, 1);
+
+    sink.writef(q"PROLOGUE
+struct TrieEntry(T...)
+{
+    size_t[] offsets;
+    size_t[] sizes;
+    size_t[] data;
+}
+PROLOGUE");
+
+    sink.writef("//%d bytes\nenum WidthTrieEntries = TrieEntry!(%s",
+                trie.bytes, typeof(trie[0]).stringof);
+    foreach (lvl; Params[0 .. $])
+        sink.writef(", %d", lvl);
+    sink.writeln(")(");
+    trie.store(sink.lockingTextWriter);
+    sink.writeln(");");
+}
+
 void main(string[] args)
 {
+    import std.getopt;
+
+    enum OutputFmt
+    {
+        ranges, intervals, code, trie
+    }
+
+    OutputFmt outfmt;
+    getopt(args,
+        "format|f", "Output format", &outfmt,
+    );
+
     string datafile = "ext/unicode-10.0.0/EastAsianWidth.txt";
     if (args.length >= 2)
         datafile = args[1];
 
     auto data = File(datafile, "r").byLine;
-    //dumpRanges(data);
-    dumpIntervals(data);
-    //genCode(data);
+    final switch(outfmt)
+    {
+        case OutputFmt.ranges:
+            dumpRanges(data);
+            break;
+
+        case OutputFmt.intervals:
+            dumpIntervals(data);
+            break;
+
+        case OutputFmt.code:
+            genCode(data);
+            break;
+    
+        case OutputFmt.trie:
+            genTrie(data, stdout);
+            break;
+    }
 }
 
 // vim:set sw=4 ts=4 et:
