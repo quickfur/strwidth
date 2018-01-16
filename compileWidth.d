@@ -201,6 +201,51 @@ void genCode(R)(R data)
     writeln(wideChars.toSourceCode("isWide"));
 }
 
+// Adapted from DmitryOlshansky/gsoc-bench-2012
+void writeBest3Level(V, K)(File sink, string name, V[K] map, V defValue=V.init)
+{
+    void delegate(File) write;
+    alias Seq(A...) = A;
+    alias List_1 = Seq!(4, 5, 6, 7, 8);
+    alias List = Seq!(4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
+    size_t min = size_t.max;
+    auto range = zip(map.values, map.keys).array;
+    foreach(lvl_1; List_1)//to have the first stage index fit in byte
+    foreach(lvl_2; List)
+    {
+        static if(lvl_1 + lvl_2  <= 16)// into ushort
+        {
+            enum lvl_3 = 21-lvl_2-lvl_1;
+            auto t = codepointTrie!(V, lvl_1, lvl_2, lvl_3) (range, defValue);
+            if(t.bytes < min)
+            {
+                min = t.bytes;
+                write = createPrinter!(lvl_1, lvl_2, lvl_3)(name, t);
+            }
+        }
+    }
+    write(sink);
+}
+
+// Adapted from DmitryOlshansky/gsoc-bench-2012
+template createPrinter(Params...)
+{
+    import std.traits : Unqual;
+
+    void delegate(File) createPrinter(T)(string name, T trie)
+    {
+        return (File sink){
+            sink.writef("//%d bytes\nenum %sTrieEntries = TrieEntry!(%s",
+                trie.bytes, name, Unqual!(typeof(T.init[0])).stringof);
+            foreach(lvl; Params[0..$])
+                sink.writef(", %d", lvl);
+            sink.write(")(");
+            trie.store(sink.lockingTextWriter());
+            sink.writeln(");");
+        };
+    }
+}
+
 /**
  * Construct trie of character display widths, and generate precompiled
  * TrieNode declarations.
@@ -235,10 +280,7 @@ void genTrie(R, File)(R data, File sink)
         widthMap[ch] = 0;
     }
 
-    alias Seq(A...) = A;
-    alias Params = Seq!(8, 5, 8);
-
-    auto trie = codepointTrie!(byte, Params)(widthMap, 1);
+    // Output precompiled trie.
 
     sink.writef(q"PROLOGUE
 struct TrieEntry(T...)
@@ -249,13 +291,8 @@ struct TrieEntry(T...)
 }
 PROLOGUE");
 
-    sink.writef("//%d bytes\nenum WidthTrieEntries = TrieEntry!(%s",
-                trie.bytes, typeof(trie[0]).stringof);
-    foreach (lvl; Params[0 .. $])
-        sink.writef(", %d", lvl);
-    sink.writeln(")(");
-    trie.store(sink.lockingTextWriter);
-    sink.writeln(");");
+    // Try various trie configurations and output the smallest resulting trie.
+    writeBest3Level(sink, "displayWidth", widthMap, 1);
 }
 
 void main(string[] args)
