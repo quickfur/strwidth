@@ -152,19 +152,15 @@ private template widthMap()
          * Anything that extends a grapheme will be assigned width 0, so that
          * we only count grapheme bases. This shortcut saves us from needing to
          * explicitly segment by graphemes, which is very slow.
+         *
+         * Also include Default_Ignorable_Code_Point in the zero width
+         * category. This deals with zero-width separators and other
+         * non-spacing modifiers.
          */
         foreach (ch; (unicode.Grapheme_extend |
                       unicode.hangulSyllableType("V") |
-                      unicode.hangulSyllableType("T")).byCodepoint)
-        {
-            widthMap[ch] = 0;
-        }
-
-        /**
-         * Default ignorable characters, including zero width separators, that
-         * should not add to width.
-         */
-        foreach (ch; unicode.Default_Ignorable_Code_Point.byCodepoint)
+                      unicode.hangulSyllableType("T") |
+                      unicode.Default_Ignorable_Code_Point).byCodepoint)
         {
             widthMap[ch] = 0;
         }
