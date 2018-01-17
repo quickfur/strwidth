@@ -71,7 +71,7 @@ unittest
  * - Combining diacritics
  * - Zero-width spaces
  */
-size_t width0(string s) pure @safe
+size_t width0(string s) /*pure*/ @safe
 {
     import std.algorithm.comparison : among;
     import std.range.primitives;
