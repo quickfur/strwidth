@@ -202,12 +202,14 @@ void genCode(R)(R data)
 }
 
 // Adapted from DmitryOlshansky/gsoc-bench-2012
+import std.meta : AliasSeq;
+alias List_1 = AliasSeq!(4, 5, 6, 7, 8);
+
+// Adapted from DmitryOlshansky/gsoc-bench-2012
 void writeBest3Level(V, K)(File sink, string name, V[K] map, V defValue=V.init)
 {
     void delegate(File) write;
-    alias Seq(A...) = A;
-    alias List_1 = Seq!(4, 5, 6, 7, 8);
-    alias List = Seq!(4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
+    alias List = AliasSeq!(4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
     size_t min = size_t.max;
     auto range = zip(map.values, map.keys).array;
     foreach(lvl_1; List_1)//to have the first stage index fit in byte
@@ -221,6 +223,32 @@ void writeBest3Level(V, K)(File sink, string name, V[K] map, V defValue=V.init)
             {
                 min = t.bytes;
                 write = createPrinter!(lvl_1, lvl_2, lvl_3)(name, t);
+            }
+        }
+    }
+    write(sink);
+}
+
+// Adapted from DmitryOlshansky/gsoc-bench-2012
+//void writeBest4Level(Set)(File sink, string name, Set set)
+void writeBest4Level(K,V)(File sink, string name, V[K] map, V defValue=V.init)
+{
+    void delegate(File) write;
+    alias List = AliasSeq!(4, 5, 6, 7, 8, 9, 10, 11, 12, 13);
+    size_t min = size_t.max;
+    auto range = zip(map.values, map.keys).array;
+    foreach(lvl_1; List_1)//to have the first stage index fit in byte
+    foreach(lvl_2; List)
+    foreach(lvl_3; List)
+    {
+        static if(lvl_1 + lvl_2 + lvl_3  <= 16)
+        {
+            enum lvl_4 = 21-lvl_3-lvl_2-lvl_1;
+            auto t = codepointTrie!(V, lvl_1, lvl_2, lvl_3, lvl_4)(range, defValue);
+            if(t.bytes < min)
+            {
+                min = t.bytes;
+                write = createPrinter!(lvl_1, lvl_2, lvl_3, lvl_4)(name, t);
             }
         }
     }
@@ -293,6 +321,7 @@ PROLOGUE");
 
     // Try various trie configurations and output the smallest resulting trie.
     writeBest3Level(sink, "displayWidth", widthMap, 1);
+    //writeBest4Level(sink, "displayWidth", widthMap, 1);
 }
 
 void main(string[] args)
