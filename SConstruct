@@ -9,6 +9,16 @@ env.Command('compileWidth', 'compileWidth.d',
 	"$DMD $DMDFLAGS -of$TARGET $SOURCES"
 )
 
-env.Command('benchmark', [ 'benchmark.d', 'strwidth.d' ],
+env.Command('benchmark', Split("""
+		benchmark.d
+		strwidth.d
+		widthtbl.d
+	"""),
 	"$DMD $DMDFLAGS -of$TARGET $SOURCES"
 )
+
+env.Command('widthtbl.d', 'compileWidth',
+	"./compileWidth -f trie > $TARGET"
+)
+
+env.Precious('widthtbl.d')
