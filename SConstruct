@@ -1,21 +1,35 @@
 #!/usr/bin/scons
 
 env = Environment(
-	DMD = '/usr/src/d/bin/dmd',
-	DMDFLAGS = [ '-O', '-unittest' ]
+	LDC = '/usr/src/d/ldc/latest/bin/ldc2',
+	LDCFLAGS = [ '-O', '-g', '-gc' ]
 )
 
-env.Command('compileWidth', 'compileWidth.d',
-	"$DMD $DMDFLAGS -of$TARGET $SOURCES"
-)
+# Convenience shorthand for building both the 'real' executable and a
+# unittest-only executable.
+def DProgram(env, target, sources):
+	# Build real executable
+	env.Command(target, sources, "$LDC $LDCFLAGS $LDCOPTFLAGS $SOURCES -of$TARGET")
 
-env.Command('benchmark', Split("""
+	# Build test executable
+	testprog = File(target + '-test').path
+	teststamp = '.' + target + '-teststamp'
+	#env.Depends(target, teststamp)
+	env.Command(teststamp, sources, [
+		"$LDC $LDCFLAGS $LDCTESTFLAGS $SOURCES -of%s" % testprog,
+		"./%s" % testprog,
+		"\\rm -f %s*" % testprog,
+		"touch $TARGET"
+	])
+AddMethod(Environment, DProgram)
+
+env.DProgram('compileWidth', 'compileWidth.d')
+
+env.DProgram('benchmark', Split("""
 		benchmark.d
 		strwidth.d
 		widthtbl.d
-	"""),
-	"$DMD $DMDFLAGS -of$TARGET $SOURCES"
-)
+	"""))
 
 env.Command('widthtbl.d', 'compileWidth',
 	"./compileWidth -f trie > $TARGET"
