@@ -80,7 +80,8 @@ void main(string[] args)
     }
 
     foreach (func; Seq!(walkLength, byGraphemeWalk, graphemeStrideWalk,
-                        width0 /+, width1, width2, width3 /+FIXME+/+/))
+                        width0, /+width1, width2, width3, /+FIXME+/+/
+                        width5))
     {
         writefln("[%s] (%d iterations):", __traits(identifier, func), numIter);
         foreach (len; [ 32, 128, 1024 ])

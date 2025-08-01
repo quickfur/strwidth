@@ -69,6 +69,12 @@ unittest
     // TBD: check other ranges
 }
 
+static immutable typeof(unicode.Default_Ignorable_Code_Point) defaultIgnorable;
+shared static this()
+{
+    defaultIgnorable = unicode.Default_Ignorable_Code_Point;
+}
+
 /**
  * Reference implementation that takes into account:
  *
@@ -82,8 +88,6 @@ size_t width0(string s) /*pure*/ @safe
     import std.range.primitives;
     import std.uni : graphemeStride, unicode;
     import std.utf : decode;
-
-    auto defaultIgnorable = unicode.Default_Ignorable_Code_Point;
 
     size_t w = 0;
     for (size_t i = 0; i < s.length; i += graphemeStride(s, i))
@@ -211,6 +215,24 @@ template width3()
     }
 }
 }//FIXME: this doesn't work anymore
+
+size_t width5(string s) /*pure*/ @safe
+{
+    import std.range.primitives;
+    import std.uni : graphemeStride, unicode;
+    import widthfunc : isWide;
+
+    size_t w = 0;
+    for (size_t i = 0; i < s.length; i += graphemeStride(s, i))
+    {
+        auto ch = s[i .. $].front; // depends on autodecoding (ugh)
+        if (!defaultIgnorable[ch])
+            w++;
+        if (isWide(ch))
+            w++;
+    }
+    return w;
+}
 
 unittest
 {
@@ -343,6 +365,7 @@ unittest
     //test!width1;
     //test!width2;
     //test!width3;
+    test!width5;
 }
 
 // vim:set sw=4 ts=4 et:

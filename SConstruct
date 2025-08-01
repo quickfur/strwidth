@@ -26,13 +26,18 @@ AddMethod(Environment, DProgram)
 env.DProgram('compileWidth', 'compileWidth.d')
 
 env.DProgram('benchmark', Split("""
-		benchmark.d
-		strwidth.d
-		widthtbl.d
-	"""))
+    benchmark.d
+    strwidth.d
+    widthfunc.d
+    widthtbl.d
+"""))
 
 env.Command('widthtbl.d', 'compileWidth',
 	"./compileWidth -f trie > $TARGET"
+)
+
+env.Command('widthfunc.d', 'compileWidth',
+	"./compileWidth -f code > $TARGET"
 )
 
 env.Precious('widthtbl.d')
