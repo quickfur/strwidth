@@ -6,7 +6,7 @@ import std.uni;
 
 immutable CodepointSetTrie!(8, 5, 8) widechars;
 
-static this()
+shared static this()
 {
     // Generated from EastAsianWidth.txt by compileWidth.
     auto set = CodepointSet(4352, 4448, 8986, 8988, 9001, 9003, 9193, 9197,

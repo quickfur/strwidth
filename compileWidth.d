@@ -29,7 +29,7 @@ struct CharRange
 void parse(alias writeln = std.stdio.writeln, R)(R data)
     if (isInputRange!R && is(ElementType!R : const(char)[]))
 {
-    auto re = regex(`^([0-9A-F]{4,})(?:\.\.([0-9A-F]{4,}))?;(A|F|H|N|Na|W)\b`);
+    auto re = regex(`^([0-9A-F]{4,})(?:\.\.([0-9A-F]{4,}))?\s*;\s*(A|F|H|N|Na|W)\b`);
     CharRange curRange;
     foreach (line; data)
     {
@@ -338,7 +338,7 @@ void main(string[] args)
         "format|f", "Output format", &outfmt,
     );
 
-    string datafile = "ext/unicode-10.0.0/EastAsianWidth.txt";
+    string datafile = "ext/unicode-16.0.0/EastAsianWidth.txt";
     if (args.length >= 2)
         datafile = args[1];
 
