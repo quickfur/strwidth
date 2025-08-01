@@ -101,25 +101,27 @@ size_t width0(string s) /*pure*/ @safe
     return w;
 }
 
-version(none) { // FIXME: this doesn't work anymore
 private template widthMap()
 {
-    auto loadEntries()
+    auto loadEntries() pure
     {
+        //import std.uni : asTrie;
         import widthtbl : displayWidthTrieEntries, TrieEntry;
 
-        // Snitched from std.uni, 'cos it's supposed to be private.
-        auto asTrie(T...)(in TrieEntry!T e)
+        // Nabbed from std.uni 'cos it's supposed to be private.
+        @safe pure nothrow auto asTrie(T...)(const scope TrieEntry!T e)
         {
             return const(CodepointTrie!T)(e.offsets, e.sizes, e.data);
         }
-        return asTrie(displayWidthTrieEntries);
+
+        static immutable res = asTrie(displayWidthTrieEntries);
+        return res;
     }
 
     private alias Impl = typeof(loadEntries());
     private immutable(Impl) widthMap;
 
-    static this()
+    shared static this()
     {
         widthMap = loadEntries();
     }
@@ -214,8 +216,8 @@ template width3()
         return result;
     }
 }
-}//FIXME: this doesn't work anymore
 
+// Using isWide function generated as code by compileWidth.
 size_t width5(string s) /*pure*/ @safe
 {
     import std.range.primitives;
@@ -361,10 +363,9 @@ unittest
     }
 
     test!width0;
-    // FIXME: these don't work anymore
-    //test!width1;
-    //test!width2;
-    //test!width3;
+    test!width1;
+    test!width2;
+    test!width3;
     test!width5;
 }
 

@@ -310,7 +310,10 @@ void genTrie(R, File)(R data, File sink)
 
     // Output precompiled trie.
 
-    sink.writef(q"PROLOGUE
+    version(none)
+        sink.writeln("import std.internal.unicode_tables : TrieEntry;");
+    else
+        sink.writef(q"PROLOGUE
 struct TrieEntry(T...)
 {
     size_t[] offsets;

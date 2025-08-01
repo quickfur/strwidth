@@ -4139,7 +4139,7 @@ if (isValidPrefixForTrie!(Key, Args)
     }
 
     // only for constant Tries constructed from precompiled tables
-    private this()(const(size_t)[] offsets, const(size_t)[] sizes,
+    /*private*/ this()(const(size_t)[] offsets, const(size_t)[] sizes,
         const(size_t)[] data) const
     {
         _table = typeof(_table)(offsets, sizes, data);
@@ -10751,7 +10751,7 @@ bool isNonCharacter(dchar c)
         assert(isNonCharacter(ch));
 }
 
-private:
+//private:
 // load static data from pre-generated tables into usable datastructures
 
 
